@@ -1,3 +1,32 @@
 let me highlight the steps .. to be clear 
 
 frontEnd -> audio inpput -> pass it to whisper running in collab via ngrok -> then whisper genererates transcription. -> send it to LLM running locally. -> llm generates html -> code file passed to react code -> it renders live -> and user can make changes likewise giving another voice prompt
+
+
+
+import os
+from groq import Groq
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file
+load_dotenv()
+
+def transcribe_audio(filename):
+    """Transcribe the audio file using Groq."""
+    api_key = os.getenv("GROQ_SECRET_ACCESS_KEY")
+    if not api_key:
+        print("Error: GROQ_SECRET_ACCESS_KEY not found.")
+        return
+
+    client = Groq(api_key=api_key)
+    with open(filename, "rb") as file:
+        transcription = client.audio.transcriptions.create(
+            file=(filename, file.read()),
+            model="whisper-large-v3-turbo",
+            language="en",  # Urdu language
+        )
+        print("Transcription:", transcription.text)
+
+if __name__ == "__main__":
+    m4a_filename = "Recording_8.m4a"  # Replace with your .m4a file
+    transcribe_audio(m4a_filename)
