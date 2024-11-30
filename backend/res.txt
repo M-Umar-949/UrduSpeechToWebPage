@@ -30,3 +30,16 @@ def transcribe_audio(filename):
 if __name__ == "__main__":
     m4a_filename = "Recording_8.m4a"  # Replace with your .m4a file
     transcribe_audio(m4a_filename)
+
+
+
+
+
+
+
+
+
+
+
+
+https://medium.com/@gayani.parameswaran/building-a-powerful-document-q-a-chatbot-with-llama3-langchain-and-groq-api-28036c5f2ff7
