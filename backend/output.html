@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visualytica</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #03055B; /* Navy Blue */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hoverable Buttons</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="h-screen flex justify-center items-center text-white">
-  <div class="text-center">
-    <h1 class="text-6xl font-bold mb-2">Visualytica</h1>
-    <p class="text-2xl">Ultimate Graph Visualization Experience</p>
-  </div>
+<body class="bg-black">
+    <div class="flex h-screen">
+        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded absolute top-0 left-0 m-4">
+            Button 1
+        </button>
+        <div class="flex-1 flex justify-center items-center">
+            <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                Button 2
+            </button>
+        </div>
+    </div>
 </body>
 </html>
