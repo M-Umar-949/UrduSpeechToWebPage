@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List App</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Add custom colors if needed */
+        body {
+            background-color: #000;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" style="background-color: #333; border: 1px solid #555; border-radius: 10px; padding: 20px;">
+        <h1 class="text-3xl font-bold mb-4 text-center">Todo List App</h1>
+        <form id="todo-form" class="flex flex-col items-center">
+            <input type="text" id="new-todo" class="w-full p-2 mb-4 border border-gray-300 rounded-lg" placeholder="New Todo" style="max-width: 400px; background-color: #444; color: #fff;">
+            <textarea id="new-todo-description" class="w-full p-2 mb-4 border border-gray-300 rounded-lg" placeholder="Description" style="max-width: 400px; background-color: #444; color: #fff;"></textarea>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg" type="submit" style="max-width: 400px;">Add Todo</button>
+        </form>
+        <ul id="todo-list" class="list-none p-0 m-0" style="max-width: 400px; margin: 20px auto;">
+            <!-- Todo items will be appended here -->
+        </ul>
+    </div>
+    <footer class="fixed bottom-0 w-full bg-gray-800 p-4 text-center">
+        <p class="text-sm text-gray-400">&copy; 2023 Mr. Amar. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let todoList = [];
+        let todoId = 0;
+        let spaceCounter = 0;
+
+        // Get the form and input elements
+        const todoForm = document.getElementById('todo-form');
+        const newTodoInput = document.getElementById('new-todo');
+        const newTodoDescriptionInput = document.getElementById('new-todo-description');
+        const todoListElement = document.getElementById('todo-list');
+
+        // Add event listener to the form
+        todoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newTodoText = newTodoInput.value.trim();
+            const newTodoDescription = newTodoDescriptionInput.value.trim();
+            if (newTodoText !== '') {
+                todoList.push({ id: todoId, text: newTodoText, description: newTodoDescription });
+                todoId++;
+                newTodoInput.value = '';
+                newTodoDescriptionInput.value = '';
+                renderTodoList();
+                changeBackground();
+            }
+        });
+
+        // Render the todo list
+        function renderTodoList() {
+            todoListElement.innerHTML = '';
+            todoList.forEach((todo) => {
+                const todoElement = document.createElement('li');
+                todoElement.innerHTML = `
+                    <div class="flex items-center justify-between p-2 border border-gray-600 rounded-lg">
+                        <div>
+                            <span class="mr-4 font-bold">${todo.text}</span>
+                            <p class="text-gray-400">${todo.description}</p>
+                        </div>
+                        <button class="bg-red-500 hover:bg-red-700 text-white py-2 px-4 rounded-lg" data-id="${todo.id}">Delete</button>
+                    </div>
+                `;
+                todoListElement.appendChild(todoElement);
+
+                // Add event listener to the delete button
+                const deleteButton = todoElement.querySelector('button');
+                deleteButton.addEventListener('click', () => {
+                    todoList = todoList.filter((t) => t.id !== todo.id);
+                    renderTodoList();
+                    changeBackground();
+                });
+            });
+        }
+
+        // Change background color
+        function changeBackground() {
+            spaceCounter++;
+            if (spaceCounter % 2 === 0) {
+                document.body.style.backgroundColor = '#333';
+            } else {
+                document.body.style.backgroundColor = '#444';
+            }
+        }
+
+        // Local Storage
+        const saveTodoList = () => {
+            localStorage.setItem('todoList', JSON.stringify(todoList));
+        };
+
+        const getTodoList = () => {
+            const storedTodoList = localStorage.getItem('todoList');
+            if (storedTodoList) {
+                todoList = JSON.parse(storedTodoList);
+                todoId = todoList.length;
+                renderTodoList();
+            }
+        };
+
+        getTodoList();
+        todoForm.addEventListener('submit', saveTodoList);
+        todoListElement.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete')) {
+                saveTodoList();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -32,20 +32,19 @@ const RecordPage = () => {
           setAudioUrl(audioUrl);
           setAudioBlob(blob);
           
+          // Reset to default generated page
           setGeneratedWebpage(`
             <!DOCTYPE html>
             <html lang="en">
             <head>
               <meta charset="UTF-8">
-              <title>Generated Webpage</title>
-              <style>
-                body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-                h1 { color: #333; }
-                p { line-height: 1.6; }
-              </style>
+              <title>Waiting for Generation</title>
+              <script src="https://cdn.tailwindcss.com"></script>
             </head>
-            <body>
-              <h1>Welcome to My Generated Webpage</h1>
+            <body class="flex items-center justify-center min-h-screen bg-gray-100">
+              <div class="text-center">
+                <h1 class="text-2xl font-bold text-gray-800">Waiting for AI to generate webpage...</h1>
+              </div>
             </body>
             </html>
           `);
@@ -97,7 +96,15 @@ const RecordPage = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      setUploadStatus('Upload successful!');
+      
+      // Check if HTML content is in the response
+      if (response.data.html_content) {
+        setGeneratedWebpage(response.data.html_content);
+        setUploadStatus('Upload and generation successful!');
+      } else {
+        setUploadStatus('Generation failed');
+      }
+      
       console.log(response.data);
     } catch (error) {
       setUploadStatus('Upload failed');
