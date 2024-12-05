@@ -1,1 +1,1 @@
- Give a color to the buy product button Give it a black color instead of white
+ Make the background color white again and add some description with every task.
