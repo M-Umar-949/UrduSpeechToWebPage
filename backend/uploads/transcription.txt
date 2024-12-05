@@ -1,1 +1,1 @@
- Overall, the background is black.
+ Give a color to the buy product button Give it a black color instead of white
