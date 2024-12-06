@@ -1,116 +1,211 @@
-!ngrok config add-authtoken 2pYoo3l16f4rmZbjHEhGIXPv0Je_xMciC7f3kamyBYFEtgF
+import React, { useState, useRef } from 'react';
+import axios from 'axios';
+import { Mic, Square, Play, Pause, Upload, Loader } from 'lucide-react'; // Import Loader icon
 
-import os
-import sounddevice as sd
-import scipy.io.wavfile as wav
-from pydub import AudioSegment
-from groq import Groq
-from dotenv import load_dotenv
-import threading
-import time
-from datetime import datetime
+const RecordPage = () => {
+  const [recordingStarted, setRecordingStarted] = useState(false);
+  const [audioUrl, setAudioUrl] = useState(null); // Stores the last recorded audio
+  const [submitted, setSubmitted] = useState(false);
+  const [generatedWebpage, setGeneratedWebpage] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // State to track loading status
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioRef = useRef(null); // Ref for the audio element
+  const [audioBlob, setAudioBlob] = useState(null);
 
-# Load environment variables from the .env file
-load_dotenv()
+  const startRecording = () => {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => {
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
 
-RECORDING_FILE_WAV = "recording.wav"
-RECORDING_FILE_M4A = "recording.m4a"
-is_recording = False
-recording_thread = None
+        mediaRecorder.addEventListener('dataavailable', (event) => {
+          audioChunksRef.current.push(event.data);
+        });
 
-def transcribe_audio(filename):
-    """Transcribe the audio file using Groq and save the transcript."""
-    api_key = os.getenv("GROQ_SECRET_ACCESS_KEY")
-    if not api_key:
-        print("Error: GROQ_SECRET_ACCESS_KEY not found.")
-        return None
+        mediaRecorder.addEventListener('stop', () => {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+          const audioUrl = URL.createObjectURL(blob);
+          setAudioUrl(audioUrl); // Store the last recorded audio
+          setAudioBlob(blob);
 
-    try:
-        client = Groq(api_key=api_key)
-        with open(filename, "rb") as file:
-            transcription = client.audio.transcriptions.create(
-                file=(filename, file.read()),
-                model="whisper-large-v3-turbo",
-                language="en",
-                response_format="text"
-            )
-        
-        # Save transcript to a file with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        transcript_filename = f"transcript_{timestamp}.txt"
-        
-        with open(transcript_filename, "w") as transcript_file:
-            transcript_file.write(transcription)
-        
-        print(f"Transcription saved to {transcript_filename}")
-        print("Transcription:", transcription)
-        
-        return transcription
-    
-    except Exception as e:
-        print(f"Transcription error: {e}")
-        return None
+          // Reset to default generated page and show loading spinner
+          setGeneratedWebpage(``);
+          setIsLoading(true); // Start loading
+          setSubmitted(true);
 
-def record_audio(duration=10, samplerate=44100):
-    """Record audio from the microphone."""
-    global is_recording
-    print("Recording started...")
-    is_recording = True
-    recording = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1, dtype='int16')
-    sd.wait()
-    wav.write(RECORDING_FILE_WAV, samplerate, recording)
-    print("Recording stopped.")
-    is_recording = False
+          // Stop the media stream tracks
+          stream.getTracks().forEach((track) => track.stop());
+        });
 
-def convert_wav_to_audio(output_format='mp3'):
-    """Convert the WAV file to another audio format."""
-    try:
-        output_filename = f"recording.{output_format}"
-        audio = AudioSegment.from_wav(RECORDING_FILE_WAV)
-        audio.export(output_filename, format=output_format)
-        print(f"Audio converted to {output_format} format.")
-        return output_filename
-    except Exception as e:
-        print(f"Conversion error: {e}")
-        return RECORDING_FILE_WAV
+        mediaRecorder.start();
+        setRecordingStarted(true);
+      })
+      .catch((error) => {
+        console.error('Microphone access error:', error);
+      });
+  };
 
-def start_recording():
-    """Start audio recording in a separate thread."""
-    global recording_thread
-    recording_thread = threading.Thread(target=record_audio)
-    recording_thread.start()
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setRecordingStarted(false);
+    }
+  };
 
-def stop_recording_and_transcribe():
-    """Stop recording, wait for completion, convert audio, and transcribe."""
-    global is_recording, recording_thread
-    
-    if is_recording:
-        print("Recording is still in progress. Waiting to complete...")
-        # Wait for the recording to finish
-        if recording_thread:
-            recording_thread.join()
-    
-    # Convert to MP3 (more reliable than M4A)
-    converted_file = convert_wav_to_audio('mp3')
-    
-    # Transcribe the converted audio file
-    transcript = transcribe_audio(converted_file)
-    return transcript
+  const togglePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause(); // Pause audio
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play(); // Play audio
+        setIsPlaying(true);
+      }
+    }
+  };
 
-if __name__ == "__main__":
-    print("Press 's' to start recording and 'e' to stop and transcribe.")
-    
-    while True:
-        user_input = input("Enter command: ").strip().lower()
-        if user_input == 's':
-            if is_recording:
-                print("Recording is already in progress.")
-            else:
-                start_recording()
-        elif user_input == 'e':
-            stop_recording_and_transcribe()
-        elif user_input == 'q':
-            print("Exiting...")
-            break
-        else:
-            print("Invalid input. Press 's' to start, 'e' to stop, or 'q' to quit.")
+  const handleAudioEnd = () => {
+    setIsPlaying(false); // Revert to Play button when audio ends
+  };
+
+  const uploadAudio = async () => {
+    if (!audioBlob) return;
+
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.wav');
+
+    try {
+      setUploadStatus('Uploading...');
+      setIsLoading(true); // Show loading spinner
+      const response = await axios.post('http://localhost:8000/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Check if HTML content is in the response
+      if (response.data.html_content) {
+        setGeneratedWebpage(response.data.html_content);
+        setUploadStatus('Upload and generation successful!');
+      } else {
+        setUploadStatus('Generation failed');
+      }
+    } catch (error) {
+      setUploadStatus('Upload failed');
+      console.error('Upload error:', error);
+    } finally {
+      setIsLoading(false); // Hide loading spinner
+    }
+  };
+
+  return (
+    <div className="min-h-screen text-white flex">
+      <div
+        className={`${
+          submitted ? 'w-1/2' : 'w-full'
+        } bg-gradient-to-br from-black to-purple-950 flex flex-col items-center justify-center p-6 transition-all duration-700`}
+      >
+        <div className="flex flex-col items-center justify-center space-y-4">
+          {/* Microphone Button */}
+          {!recordingStarted ? (
+            <>
+              <button
+                onClick={startRecording}
+                className="bg-purple-700 hover:bg-purple-600 text-white p-4 rounded-full transition-all duration-300 transform hover:scale-110"
+              >
+                <Mic size={64} />
+              </button>
+              <p className="text-gray-300 font-mono text-lg">
+                Click the microphone to start recording <br />
+                <span className="text-xl font-noto-sans">مایک پر کلک کریں ریکارڈنگ شروع کرنے کے لیے</span>
+              </p>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={stopRecording}
+                className="bg-red-600 hover:bg-red-500 text-white p-4 rounded-full transition-all duration-300 transform hover:scale-110 relative"
+              >
+                <Mic size={64} className="animate-pulse" />
+                <div className="absolute top-0 left-0 w-full h-full border-4 border-red-500 rounded-full animate-ping"></div>
+              </button>
+              <p className="text-red-400 font-mono text-lg">
+                Recording in progress... <br />
+                <span className="text-xl font-noto-sans">ریکارڈنگ جاری ہے...</span>
+              </p>
+            </>
+          )}
+
+          {/* Playback and Upload Buttons */}
+          {audioUrl && (
+            <div className="flex flex-col items-center space-y-4">
+              <div className="flex items-center space-x-6">
+                {/* Play Button */}
+                <button
+                  onClick={togglePlayPause}
+                  className="bg-purple-700 hover:bg-purple-600 text-white px-6 py-4 rounded-full transition-all duration-300 shadow-md flex flex-col items-center justify-center w-32"
+                >
+                  {isPlaying ? <Pause size={32} /> : <Play size={32} />}
+                  <span className="mt-2 text-base font-medium">
+                    Play <br />
+                    <span className="text-sm font-noto-sans">پلے</span>
+                  </span>
+                </button>
+
+                {/* Upload Button */}
+                <button
+                  onClick={uploadAudio}
+                  className="bg-purple-700 hover:bg-purple-600 text-white px-6 py-4 rounded-full transition-all duration-300 shadow-md flex flex-col items-center justify-center w-32"
+                >
+                  <Upload size={32} />
+                  <span className="mt-2 text-base font-medium">
+                    Upload <br />
+                    <span className="text-sm font-noto-sans">اپ لوڈ</span>
+                  </span>
+                </button>
+              </div>
+              <audio
+                ref={audioRef}
+                src={audioUrl}
+                onEnded={handleAudioEnd} // Reset Play button after audio ends
+              />
+            </div>
+          )}
+
+          {/* Status Message */}
+          {uploadStatus && (
+            <div className="text-sm text-white mt-4">{uploadStatus}</div>
+          )}
+        </div>
+      </div>
+
+      {/* Webpage Display Section */}
+      {submitted && (
+        <div className="w-1/2 bg-white overflow-auto h-screen">
+          {isLoading ? (
+            // Show loading spinner if webpage is being generated
+            <div className="flex items-center justify-center h-full">
+              <Loader size={64} className="animate-spin text-purple-700" />
+              <h1 className="ml-4 text-xl font-bold text-purple-700">
+                Generating webpage... <br />
+                <span className="text-xl font-noto-sans">ویب صفحہ تیار ہو رہا ہے...</span>
+              </h1>
+            </div>
+          ) : (
+            <iframe
+              srcDoc={generatedWebpage}
+              className="w-full h-full"
+              title="Generated Webpage"
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RecordPage;

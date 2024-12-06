@@ -62,7 +62,7 @@ async def upload_audio(audio: UploadFile = File(...)):
                 if response.status_code == 200:
                     data = response.json()
                     transcription = data.get('transcription', '')
-
+                    transcription=transcription+".The code should be in json html key"
                     transcription_file = os.path.join(html_generator.upload_folder, "transcription.txt")
                     with open(transcription_file, "w", encoding='utf-8') as txt_file:
                         txt_file.write(transcription)
